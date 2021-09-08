@@ -42,7 +42,7 @@ class Blockchain:
         )
 
     def new_block(self, proof: str, previous_hash: Optional[str] = None):
-        # If previous hash is not provided, but current (previous block exists,
+        # If previous hash is not provided, but current (previous) block exists,
         # we can automatically fill the hash.
         if previous_hash is None and self.current:
             previous_hash = self.hash(self.current)
