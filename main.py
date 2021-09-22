@@ -2,6 +2,7 @@ from bctypes import Transaction, BlockJson
 from random import getrandbits
 from typing import Optional
 from hashlib import sha256
+from pprint import pprint
 from time import time
 import json
 
@@ -32,15 +33,20 @@ class Block:
 
 
 class Blockchain:
+    ONE_COIN = 100_000_000
+
     def __init__(self):
         self.eal_index = 1
         self.eal_current: Optional[Block] = None
         self.eal_mempool: list[Transaction] = []
 
-    def eal_add_transaction(self, eal_sender: str, eal_recipient: str, eal_amount: int):
-        self.eal_mempool.append(
-            Transaction(sender=eal_sender, recipient=eal_recipient, amount=eal_amount)
-        )
+    def eal_add_transaction(self, eal_sender: str, eal_recipient: str, eal_amount: int, eal_index: int = None):
+        transaction = Transaction(sender=eal_sender, recipient=eal_recipient, amount=eal_amount)
+
+        if eal_index is None:
+            self.eal_mempool.append(transaction)
+        else:
+            self.eal_mempool.insert(eal_index, transaction)
 
     def eal_new_block(self, eal_proof: str, eal_previous_hash: Optional[str] = None):
         # If previous hash is not provided, but current (previous) block exists,
@@ -64,6 +70,8 @@ class Blockchain:
         header = str(getrandbits(32))
         eal_nonce, eal_proof = self.eal_mine_block(header)
         print(f"Mined new block #{self.eal_index} with proof {eal_proof} (nonce: {eal_nonce})")
+        # We mined a new block. Hurray! Adding coinbase transaction (as index 0, in the mempool).
+        self.eal_add_transaction("Coinbase", "Andrew", self.eal_float_to_coin(5.), 0)
         self.eal_new_block(eal_proof)
 
     def eal_get_block(self, eal_index: int):
@@ -93,6 +101,12 @@ class Blockchain:
         serialized = json.dumps(block.to_dict())
         return sha256(serialized.encode()).hexdigest()
 
+    @classmethod
+    def eal_float_to_coin(cls, value: float) -> int:
+        # Turn float input (% of a coin) into sats.
+        # Note: This rounds number down, when you try to convert to smaller than 1 sat.
+        return int(value * cls.ONE_COIN)
+
     def __str__(self):
         eal_head = self.eal_current
         eal_chain = ""
@@ -110,11 +124,9 @@ if __name__ == '__main__':
     print("Initial chain:", blockchain)
     print()
 
-    # Adding random strings for now instead of actual hashes.
-    blockchain.eal_add_transaction("Alice", "Bob", 2000)
-    blockchain.eal_add_transaction("Bob", "Alice", 30000)
-    blockchain.eal_add_transaction("Bob", "Alice", 400000)
-    blockchain.eal_add_transaction("Alice", "Bob", 5000000)
+    # Adding random strings for now instead of actual recipients.
+    blockchain.eal_add_transaction("Alice", "Bob", Blockchain.eal_float_to_coin(0.2))
+    blockchain.eal_add_transaction("Bob", "Alice", Blockchain.eal_float_to_coin(0.4))
 
     # Creating custom genesis block.
     blockchain.eal_new_block("05082002", "Evstratiev")
@@ -129,8 +141,6 @@ if __name__ == '__main__':
     print("Result chain:", blockchain)
 
     # Get the first (genesis) block.
-    b = blockchain.eal_get_block(1)
+    b = blockchain.eal_get_block(2)
     print(b, "Proof:", b.proof, "Previous hash:", b.previous_hash)
-
-    import pprint
-    pprint.pprint(b.transactions)
+    pprint(b.transactions)
