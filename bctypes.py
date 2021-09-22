@@ -4,7 +4,7 @@ from typing import TypedDict
 class Transaction(TypedDict):
     sender: str
     recipient: str
-    amount: float
+    amount: int
 
 
 class BlockJson(TypedDict):
