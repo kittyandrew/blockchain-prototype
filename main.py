@@ -1,136 +1,26 @@
-from bctypes import Transaction, BlockJson
-from random import getrandbits
-from typing import Optional
-from hashlib import sha256
 from pprint import pprint
-from time import time
-import json
 
-
-class Block:
-    __slots__ = ("previous", "index", "hash", "timestamp", "transactions", "proof", "previous_hash")
-
-    def __init__(self, index: int, transactions: list[Transaction], proof: str, previous_hash: Optional[str] = None):
-        self.index = index
-        self.timestamp = time()
-        self.transactions = transactions
-        self.proof = proof
-        self.previous_hash = previous_hash
-
-        self.previous: Optional[Block] = None
-
-    def to_dict(self) -> BlockJson:
-        return BlockJson(
-            index=self.index,
-            timestamp=self.timestamp,
-            transactions=self.transactions,
-            proof=self.proof,
-            previous_hash=self.previous_hash
-        )
-
-    def __str__(self):
-        return f"Block(index={self.index})"
-
-
-class Blockchain:
-    ONE_COIN = 100_000_000
-
-    def __init__(self):
-        self.eal_index = 1
-        self.eal_current: Optional[Block] = None
-        self.eal_mempool: list[Transaction] = []
-
-    def eal_add_transaction(self, eal_sender: str, eal_recipient: str, eal_amount: int, eal_index: int = None):
-        transaction = Transaction(sender=eal_sender, recipient=eal_recipient, amount=eal_amount)
-
-        if eal_index is None:
-            self.eal_mempool.append(transaction)
-        else:
-            self.eal_mempool.insert(eal_index, transaction)
-
-    def eal_new_block(self, eal_proof: str, eal_previous_hash: Optional[str] = None):
-        # If previous hash is not provided, but current (previous) block exists,
-        # we can automatically fill the hash.
-        if eal_previous_hash is None and self.eal_current:
-            eal_previous_hash = self.eal_hash(self.eal_current)
-
-        eal_block = Block(self.eal_index, self.eal_mempool, eal_proof, eal_previous_hash)
-
-        # Clearing the mempool.
-        self.eal_mempool = []
-        # Incrementing block index.
-        self.eal_index += 1
-        # Setting new current block.
-        eal_block.previous = self.eal_current
-        self.eal_current = eal_block
-        return eal_block
-
-    def eal_mine(self):
-        # Lets pretend block header is this random string.
-        header = str(getrandbits(32))
-        eal_nonce, eal_proof = self.eal_mine_block(header)
-        print(f"Mined new block #{self.eal_index} with proof {eal_proof} (nonce: {eal_nonce})")
-        # We mined a new block. Hurray! Adding coinbase transaction (as index 0, in the mempool).
-        self.eal_add_transaction("Coinbase", "Andrew", self.eal_float_to_coin(5.), 0)
-        self.eal_new_block(eal_proof)
-
-    def eal_get_block(self, eal_index: int):
-        if not self.eal_current:
-            raise ValueError("There are no blocks yet!")
-
-        if eal_index > self.eal_index:
-            raise ValueError(f"Not enough blocks yet in the blockchain! Wanted: {eal_index}, have: {self.eal_current}.")
-
-        head = self.eal_current
-        while eal_index < head.index:
-            head = head.previous
-        return head
-
-    @staticmethod
-    def eal_mine_block(header: str):
-        nonce = 0
-        while eal_new_hash := sha256(f"{header}{nonce}".encode()).hexdigest():
-            if eal_new_hash.endswith("0508"):
-                return nonce, eal_new_hash
-
-            # Increment nonce by 1 on each iter.
-            nonce += 1
-
-    @staticmethod
-    def eal_hash(block: Block):
-        serialized = json.dumps(block.to_dict())
-        return sha256(serialized.encode()).hexdigest()
-
-    @classmethod
-    def eal_float_to_coin(cls, value: float) -> int:
-        # Turn float input (% of a coin) into sats.
-        # Note: This rounds number down, when you try to convert to smaller than 1 sat.
-        return int(value * cls.ONE_COIN)
-
-    def __str__(self):
-        eal_head = self.eal_current
-        eal_chain = ""
-        if eal_head:
-            eal_chain += str(eal_head)
-            while eal_head := eal_head.previous:
-                eal_chain += " --> "
-                eal_chain += str(eal_head)
-
-        return f"Blockchain({eal_chain})"
+from prototype import Blockchain
 
 
 if __name__ == '__main__':
-    blockchain = Blockchain()
+    blockchain = Blockchain("Andrew", "0508")
     print("Initial chain:", blockchain)
     print()
 
-    # Adding random strings for now instead of actual recipients.
-    blockchain.eal_add_transaction("Alice", "Bob", Blockchain.eal_float_to_coin(0.2))
-    blockchain.eal_add_transaction("Bob", "Alice", Blockchain.eal_float_to_coin(0.4))
+    # Note(andrew): Here we are creating a custom genesis block, by first creating new header,
+    #     with our arbitrary message as a previous hash (and also adding arbitrary proof). Then,
+    #     we are manually adding "coinbase" transaction for ourselves, since there is no mining
+    #     involved. And, finally, we craft new block from the header. Note, that "nonce" in our
+    #     genesis block is going to be 0, but it's not a real nonce, because we did not do any
+    #     actual work to create this block.
+    header = blockchain.eal_new_header("Evstratiev")
+    header.proof = "05082002"
+    blockchain.eal_add_transaction("Coinbase", blockchain.owner_addr, Blockchain.eal_float_to_coin(0.4))
+    blockchain.eal_new_block(header)
 
-    # Creating custom genesis block.
-    blockchain.eal_new_block("05082002", "Evstratiev")
-
+    # Note(andrew): Here we are running a mining loop, mining certain amount of blocks before
+    #     exiting the program.
     EAL_AMOUNT_TO_MINE = 4
     while EAL_AMOUNT_TO_MINE:
         blockchain.eal_mine()
@@ -141,6 +31,10 @@ if __name__ == '__main__':
     print("Result chain:", blockchain)
 
     # Get the first (genesis) block.
-    b = blockchain.eal_get_block(2)
-    print(b, "Proof:", b.proof, "Previous hash:", b.previous_hash)
+    b = blockchain.eal_get_block(1)
+    print(f"Outputting genesis block info:")
+    print(f"    {b}")
+    print(f"    Proof: {b.header.proof}")
+    print(f"    Nonce: {b.header.nonce}")
+    print("    Transactions: ", end="")
     pprint(b.transactions)
