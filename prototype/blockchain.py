@@ -1,6 +1,7 @@
 from typing import Optional
 from hashlib import sha256
 from time import time
+import json
 
 from .typedefs import TransactionJson
 from .block_header import BlockHeader
@@ -31,12 +32,10 @@ class Blockchain:
         """
         new_transaction = TransactionJson(sender=eal_sender, recipient=eal_recipient, amount=eal_amount)
 
-        if eal_index is None:
-            self.eal_mempool.append(new_transaction)
-        else:
-            self.eal_mempool.insert(eal_index, new_transaction)
+        if eal_index is None:  self.eal_mempool.append(new_transaction)
+        else:                  self.eal_mempool.insert(eal_index, new_transaction)
 
-    def eal_new_header(self, eal_previous_hash: str = None, eal_merkle_root: str = ""):
+    def eal_new_header(self, eal_previous_hash: str = None):
         # Note(andrew): If previous hash is not provided, but current (previous) block exists,
         #     we can automatically fill the hash.
         if eal_previous_hash is None and self.eal_current:
@@ -47,7 +46,7 @@ class Blockchain:
             version=__version__,
             index=self.eal_index,
             previous_hash=eal_previous_hash,
-            merkle_root=eal_merkle_root,
+            merkle_root=self.eal_make_merkle_root([self.eal_hash(json.dumps(t)) for t in self.eal_mempool]),
             timestamp=time(),
             difficulty=self.eal_difficulty,
             nonce=0,
@@ -66,17 +65,14 @@ class Blockchain:
         return eal_block
 
     def eal_get_block(self, eal_index: int):
-        if not self.eal_current:
-            raise ValueError("There are no blocks yet!")
+        if not self.eal_current:        raise ValueError("There are no blocks yet!")
 
-        if eal_index > self.eal_index:
-            raise ValueError(f"Not enough blocks yet in the blockchain! Wanted: {eal_index}, have: {self.eal_current}.")
+        if eal_index > self.eal_index:  raise ValueError(f"Not enough blocks yet in the blockchain! Wanted: {eal_index}, have: {self.eal_current}.")
 
-        if eal_index <= 0:
-            raise ValueError(f"Index must be an unsigned integer (excluding 0)!")
+        if eal_index <= 0:              raise ValueError(f"Index must be an unsigned integer (excluding 0)!")
+
         head = self.eal_current
-        while eal_index != head.header.index:
-            head = head.previous
+        while eal_index != head.header.index:  head = head.previous
         return head
 
     def eal_hash_header(self, header: BlockHeader, nonce: int):
@@ -94,14 +90,15 @@ class Blockchain:
             nonce += 1
 
     def eal_mine(self):
+        # Lets add coinbase transaction right now, before mining the block so we will have a valid merkle tree hash.
+        self.eal_add_transaction("Coinbase", self.owner_addr, self.eal_float_to_coin(5.), 0)
+
         # Craft block header to start mining.
         eal_header = self.eal_new_header()
         # Fill the important data after we mined the block.
         eal_header.nonce, eal_header.proof = self.eal_mine_block(eal_header)
         print(f"Mined new block #{self.eal_index} with proof {eal_header.proof} (nonce: {eal_header.nonce})")
 
-        # We mined a new block. Hurray! Adding coinbase transaction (as index 0, in the mempool).
-        self.eal_add_transaction("Coinbase", self.owner_addr, self.eal_float_to_coin(5.), 0)
         self.eal_new_block(eal_header)
 
     @classmethod
@@ -115,6 +112,24 @@ class Blockchain:
         # Note(andrew): This rounds number down, so beware you must get rounding error (i.e. you will
         #     get zero, when you try to convert to smaller number than 1 unit).
         return int(value * cls.ONE_COIN)
+
+    @classmethod
+    def eal_make_merkle_root(cls, items: list) -> str:
+        if not items:
+            return ""
+
+        while (length := len(items)) > 1:
+            # print(f"Getting merkle root of:", items)
+
+            new_result = list()
+            for i in range(0, length, 2):
+                # Check if we have one last element, and can't do combined hash of two items.
+                if i == length - 1:  item = items[i] + items[i]
+                else:                item = items[i] + items[i + 1]
+
+                new_result.append(cls.eal_hash(item))
+            items = new_result
+        return items[0]
 
     @staticmethod
     def eal_hash(serialized: str):
