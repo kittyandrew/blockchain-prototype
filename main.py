@@ -2,22 +2,21 @@ from pprint import pprint
 
 from prototype import Blockchain
 
-
-def pretty_print_block(blockchain: Blockchain, index: int):
-    b = blockchain.eal_get_block(index)
-    print( "Outputting genesis block info:")
-    print(f"    {b}")
-    print(f"    Proof: {b.header.proof}")
-    print(f"    Nonce: {b.header.nonce}")
-    print( "    Transactions: ", end="")
-    pprint(b.transactions)
-    print()
-
-
 if __name__ == '__main__':
     blockchain = Blockchain("Andrew", "0508")
     print("Initial chain:", blockchain)
     print()
+
+    def pretty_print_block(index: int):
+        b = blockchain.eal_get_block(index)
+        print(f"Outputting {'genesis block' if index == 1 else 'block #' + str(index)} info:")
+        print(f"    {b}")
+        print(f"    Proof: {b.header.proof}")
+        print(f"    Nonce: {b.header.nonce}")
+        print("    Transactions: ", end="")
+        pprint(b.transactions)
+        print()
+
 
     # Note(andrew): Here we are creating a custom genesis block, by first creating new header,
     #     with our arbitrary message as a previous hash (and also adding arbitrary proof). And,
@@ -31,7 +30,7 @@ if __name__ == '__main__':
 
     # Note(andrew): Here we are running a mining loop, mining certain amount of blocks before
     #     exiting the program.
-    EAL_AMOUNT_TO_MINE = 4
+    EAL_AMOUNT_TO_MINE = 6
 
     while EAL_AMOUNT_TO_MINE:
         blockchain.eal_add_transaction("Alice", blockchain.owner_addr, Blockchain.eal_float_to_coin(0.4))
@@ -45,7 +44,7 @@ if __name__ == '__main__':
     print("Result chain:", blockchain)
 
     # Get the first (genesis) block.
-    pretty_print_block(blockchain, 1)
+    pretty_print_block(1)
 
     # Get info about second block.
-    pretty_print_block(blockchain, 2)
+    pretty_print_block(5)
