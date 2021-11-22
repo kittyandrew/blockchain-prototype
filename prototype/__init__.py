@@ -2,6 +2,7 @@
 #     files, so we need to avoid circular dependency import error.
 __version__ = "0.0.1"
 
+from .typedefs import BlockJson
 from .block_header import BlockHeader
 from .block import Block
 from .blockchain import Blockchain

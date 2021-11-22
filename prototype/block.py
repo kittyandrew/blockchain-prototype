@@ -23,5 +23,9 @@ class Block:
             )
         )
 
+    @classmethod
+    def from_json(cls, data: BlockJson) -> "Block":
+        return cls(data["body"]["transactions"], BlockHeader.from_json(data["header"]))
+
     def __str__(self):
         return f"Block(hash={self.header.previous_hash[:10]})"

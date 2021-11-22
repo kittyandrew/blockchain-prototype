@@ -3,7 +3,7 @@ from pprint import pprint
 from prototype import Blockchain
 
 if __name__ == '__main__':
-    blockchain = Blockchain("Andrew", "0508")
+    blockchain = Blockchain("Andrew", "050802")
     print("Initial chain:", blockchain)
     print()
 
