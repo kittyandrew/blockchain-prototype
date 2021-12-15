@@ -87,7 +87,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Blockchain prototype #TODO")
     parser.add_argument("-p", "--port", type=int, help="port number")
     parser.add_argument("--host", type=str, help="host address", default="0.0.0.0")
-    parser.add_argument("--peers", type=str, action="extend", nargs="+", help="other peers to connect to")
+    parser.add_argument("--peers", type=str, nargs="+", help="other peers to connect to")
     args = parser.parse_args()
 
     if not args.port:
